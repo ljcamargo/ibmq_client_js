@@ -1,0 +1,23 @@
+{
+  "name": "ibmq-js-api",
+  "version": "1.0.0",
+  "description": "Node IBMQ API provider",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/ljcamargo/ibmq-js-api"
+  },
+  "keywords": [
+    "ibmq",
+    "quantum",
+    "qiskit",
+    "api",
+    "javascript",
+    "js"
+  ],
+  "author": "Luis J Camargo",
+  "license": "MIT"
+}
