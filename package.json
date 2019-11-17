@@ -19,5 +19,10 @@
     "js"
   ],
   "author": "Luis J Camargo",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5"
+  }
 }
