@@ -24,12 +24,26 @@ class IBMQJSApi {
       'timeout' : 20000,
       'url': 'https://api.quantum-computing.ibm.com/api',
       'endpoints' : {
+        'userData': (id) => `/Users/${id}`,
+        'latestCodes': (id) => `/Users/${id}/codes/latest`,
         'backends': '/Backends',
         'backend': (name) => `/Backends/${name}`,
+        'calibration': (name) => `/Backends/${name}/calibration`,
+        'parameters': (name) => `/Backends/${name}/parameters`,
         'hubs': '/Network',
         'hub': (name) => `/Network/${name}`,
+        'groups': (network) => `/Network/${network}/Groups`,
+        'group': (network, group) => `/Network/${network}/Groups/${group}`,
+        'projects': (network, group) => `/Network/${network}/Groups/${group}/Projects`,
+        'project': (network, group, project) => `/Network/${network}/Groups/${group}/Projects/${project}`,
+        'netJobs': (network, group, project) => `/Network/${network}/Groups/${group}/Projects/${project}/Jobs`,
+        'netJob': (network, group, project, job) => `/Network/${network}/Groups/${group}/Projects/${project}/Jobs/${job}`,
         'jobs': '/Jobs',
         'job': (id) => `/Jobs/${id}`,
+        'jobs': '/Jobs',
+        'job': (id) => `/Jobs/${id}`,
+        'execution': (id) => `/Executions/${id}`,
+        'code': (id) => `/Codes/${id}`,
         'jobsStatus': '/Jobs/status',
         'circuit': '/qcircuit',
         'version': '/version'
@@ -80,50 +94,59 @@ class IBMQJSApi {
     return this.post(base, path, content)
   }
 
-  login(done) {
+  login() {
     this.log(`logging in`);
-    rp(this.apost(this.auth.url, this.auth.endpoints.login))
+    return rp(this.apost(this.auth.url, this.auth.endpoints.login))
       .then(parsed => {
           this.log(`login success!`, parsed);
           this.session = parsed;
           done(parsed);
+          return parsed;
       })
       .catch(err => this.warn(`login error! ${err}`));
   };
 
   user(done) {
     this.log(`get userprofile`);
-    rp(this.aget(this.auth.url, this.auth.endpoints.user))
+    return rp(this.aget(this.auth.url, this.auth.endpoints.user))
       .then(parsed => {
         this.log(`get user profile success!`, parsed);
         this.profile_ = parsed;
         done(parsed);
+        return parsed;
       })
       .catch(err => this.warn(`got user profile error! ${err}`));
   };
 
   list(kind, path, done) {
     this.log(`get list ${kind}s`);
-    rp(this.aget(this.api.url, path))
+    return rp(this.aget(this.api.url, path))
       .then(parsed => {
         this.log(`get list ${kind}s success!`, parsed);
         done(parsed);
+        return parsed;
       })
       .catch(err => this.warn(`get list ${kind}s error! ${err}`));
   }
 
   detail(kind, path, name, done) {
     this.log(`get detail of ${kind} "${name}"`);
-    rp(this.aget(this.api.url, path))
+    return rp(this.aget(this.api.url, path))
       .then(parsed => {
         this.log(`get detail of ${kind} "${name}" success!`, parsed);
         done(parsed);
+        return parsed;
       })
       .catch(err => this.warn(`get detail of ${kind} "${name}" error! ${err}`));
   }
 
+  userData(done) {
+    const id = this.session.userId;
+    return this.detail("user", this.api.endpoints.userData(id), id, done);
+  }
+
   hubs(done) {
-    this.list("hub", this.api.endpoints.hubs, list => {
+    return this.list("hub", this.api.endpoints.hubs, list => {
       this.hubs_ = list;
       this.log("hubs available:");
       list.forEach(hub => {
@@ -141,15 +164,16 @@ class IBMQJSApi {
         });
       });
       done(list);
+      return list;
     });
   };
 
   hub(name, done) {
-    this.detail("hub", this.api.endpoints.hub(name), name, done);
+    return this.detail("hub", this.api.endpoints.hub(name), name, done);
   };
 
   backends(done) {
-    this.list("backend", this.api.endpoints.backends, list => {
+    return this.list("backend", this.api.endpoints.backends, list => {
       this.log("backends available:");
       list.forEach(backend => {
         this.log("backend", backend);
@@ -159,11 +183,19 @@ class IBMQJSApi {
   };
 
   backend(name, done) {
-    this.detail("backend", this.api.endpoints.backend(name), name, done);
+    return this.detail("backend", this.api.endpoints.backend(name), name, done);
+  };
+
+  calibration(name, done) {
+    return this.detail("calibration", this.api.endpoints.calibration(name), name, done);
+  };
+
+  parameters(name, done) {
+    return this.detail("parameters", this.api.endpoints.parameters(name), name, done);
   };
 
   jobs(done) {
-    this.list("job", this.api.endpoints.jobs, list => {
+    return this.list("job", this.api.endpoints.jobs, list => {
       this.log("jobs available:");
       list.forEach(job => {
         this.log("job", job);
@@ -172,18 +204,52 @@ class IBMQJSApi {
     });
   };
 
-  job(name, done) {
-    this.detail("job", this.api.endpoints.job(name), name, done);
+  job(id, done) {
+    return this.detail("job", this.api.endpoints.job(id), id, done);
+  };
+
+  execution(id, done) {
+    return this.detail("job", this.api.endpoints.execution(id), id, done);
+  };
+
+  code(id, done) {
+    return this.detail("code", this.api.endpoints.code(id), id, done);
+  };
+
+  version(done) {
+    return this.detail("version", this.api.endpoints.version, null, done);
   };
 
 };
 
-//module.exports = IBMQJSApi;
+module.exports = IBMQJSApi;
 
 const dotenv = require('dotenv');
 dotenv.config();
 const api = new IBMQJSApi(process.env.TOKEN);
-api.login(session => {
+
+api
+  .login(session => console.log("got login"))
+  .then(session => api.version(version => console.log("got version")))
+  .then(version =>  api.user(user => console.log("got profile")))
+  .then(users =>  api.hubs(hubs => console.log("got hub!")))
+  .then(hubs => api.hub(hubs[0].name, hub => console.log("got hub!")))
+  .then(hub => api.jobs(jobs => console.log("got jobs!")))
+  .then(jobs => {
+    console.log("got jobs");
+    if (jobs.length > 0) {
+      return api.job(jobs[0].id, ()=>{});
+    } else {
+      return new Promise();
+    }
+  })
+  .then(job => {
+    console.log("got job");
+    return api.code(job.codeId, ()=>{});
+  })
+  .then(code => console.log(code));
+
+/* api.login(session => {
   console.log("got login");
   api.user(user => {
     console.log("got profile");
@@ -194,12 +260,18 @@ api.login(session => {
           console.log("got backends");
           api.backend(backends[0].name, backend =>  {
             console.log("got backend");
-            api.jobs(jobs =>  {
-              console.log("got jobs");
+            api.calibration('ibmq_essex', calibration =>  {
+              console.log("got calibration");
+              api.parameters('ibmq_essex', parameters =>  {
+                console.log("got parameters");
+                api.jobs(jobs =>  {
+                  console.log("got jobs");
+                });
+              });
             });
           });
         });
       });
     }); 
   });
-});
+}); */
